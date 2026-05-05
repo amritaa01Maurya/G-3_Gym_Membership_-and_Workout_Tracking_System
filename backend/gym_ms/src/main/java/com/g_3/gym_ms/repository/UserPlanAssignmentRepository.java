@@ -17,4 +17,6 @@ public interface UserPlanAssignmentRepository extends JpaRepository<UserPlanAssi
     
     @Query("SELECT upa FROM UserPlanAssignment upa WHERE upa.user.id = :userId AND upa.isActive = true")
     List<UserPlanAssignment> findActiveByUserId(@Param("userId") Long userId);
+
+    Optional<UserPlanAssignment> findByUserIdAndPlanTypeAndPlanId(Long userId, String planType, Long planId);
 }

@@ -1,22 +1,17 @@
 package com.g_3.gym_ms.dto;
 
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class WorkoutPlanRequest {
-    @NotNull(message = "Plan name is required")
+public class ExerciseDTO {
+    private Long id;
     private String name;
-    
+    private String category;
     private String description;
-
-    private List<WorkoutPlanItemRequest> items;
 }

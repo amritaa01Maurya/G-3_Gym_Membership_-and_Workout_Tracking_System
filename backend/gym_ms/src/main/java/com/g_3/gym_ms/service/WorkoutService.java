@@ -50,6 +50,10 @@ public class WorkoutService {
                 .build();
         
         WorkoutSession saved = workoutSessionRepository.save(session);
+        if (request.getExercises() != null && !request.getExercises().isEmpty()) {
+            request.getExercises().forEach(exerciseRequest -> saveExerciseLog(saved, exerciseRequest));
+        }
+
         log.info("Workout session created for user {} on {}", userId, request.getSessionDate());
         
         return convertToDTO(saved);
@@ -66,19 +70,30 @@ public class WorkoutService {
             throw new BadRequestException("Unauthorized access to this workout session");
         }
         
-        ExerciseLog exerciseLog = ExerciseLog.builder()
-                .workoutSession(session)
-                .exerciseName(request.getExerciseName())
-                .sets(request.getSets())
-                .reps(request.getReps())
-                .weight(request.getWeight())
-                .caloriesBurned(request.getCaloriesBurned())
-                .build();
-        
-        ExerciseLog saved = exerciseLogRepository.save(exerciseLog);
+        ExerciseLog saved = saveExerciseLog(session, request);
         log.info("Exercise {} added to workout session {}", request.getExerciseName(), sessionId);
         
         return convertExerciseToDTO(saved);
+    }
+
+    /**
+     * Add multiple exercises to a workout session
+     */
+    public List<ExerciseLogDTO> addExercisesToSession(Long userId, Long sessionId, List<ExerciseLogRequest> requests) {
+        WorkoutSession session = workoutSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Workout session not found"));
+
+        if (!session.getUser().getId().equals(userId)) {
+            throw new BadRequestException("Unauthorized access to this workout session");
+        }
+
+        if (requests == null || requests.isEmpty()) {
+            throw new BadRequestException("At least one exercise is required");
+        }
+
+        return requests.stream()
+                .map(request -> convertExerciseToDTO(saveExerciseLog(session, request)))
+                .collect(Collectors.toList());
     }
     
     /**
@@ -148,6 +163,26 @@ public class WorkoutService {
         WorkoutSession updated = workoutSessionRepository.save(session);
         return convertToDTO(updated);
     }
+
+    /**
+     * Update an exercise log
+     */
+    public ExerciseLogDTO updateExerciseLog(Long userId, Long exerciseLogId, ExerciseLogRequest request) {
+        ExerciseLog exerciseLog = exerciseLogRepository.findById(exerciseLogId)
+                .orElseThrow(() -> new ResourceNotFoundException("Exercise log not found"));
+
+        if (!exerciseLog.getWorkoutSession().getUser().getId().equals(userId)) {
+            throw new BadRequestException("Unauthorized access");
+        }
+
+        exerciseLog.setExerciseName(request.getExerciseName());
+        exerciseLog.setSets(request.getSets());
+        exerciseLog.setReps(request.getReps());
+        exerciseLog.setWeight(request.getWeight());
+        exerciseLog.setCaloriesBurned(request.getCaloriesBurned());
+
+        return convertExerciseToDTO(exerciseLogRepository.save(exerciseLog));
+    }
     
     /**
      * Delete a workout session
@@ -212,5 +247,18 @@ public class WorkoutService {
                 .weight(exerciseLog.getWeight())
                 .caloriesBurned(exerciseLog.getCaloriesBurned())
                 .build();
+    }
+
+    private ExerciseLog saveExerciseLog(WorkoutSession session, ExerciseLogRequest request) {
+        ExerciseLog exerciseLog = ExerciseLog.builder()
+                .workoutSession(session)
+                .exerciseName(request.getExerciseName())
+                .sets(request.getSets())
+                .reps(request.getReps())
+                .weight(request.getWeight())
+                .caloriesBurned(request.getCaloriesBurned())
+                .build();
+
+        return exerciseLogRepository.save(exerciseLog);
     }
 }

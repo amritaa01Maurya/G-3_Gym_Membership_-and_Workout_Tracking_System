@@ -91,7 +91,7 @@ public class MetricsService {
         userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
         
-        BodyMetrics metrics = bodyMetricsRepository.findLatestByUserId(userId)
+        BodyMetrics metrics = bodyMetricsRepository.findTopByUserIdOrderByMetricDateDesc(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("No metrics found for user"));
         
         return convertToDTO(metrics);

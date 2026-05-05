@@ -1,6 +1,7 @@
 package com.g_3.gym_ms.service;
 
 import com.g_3.gym_ms.dto.TrainerClientMappingDTO;
+import com.g_3.gym_ms.entity.RoleEnum;
 import com.g_3.gym_ms.entity.TrainerClientMapping;
 import com.g_3.gym_ms.entity.User;
 import com.g_3.gym_ms.exception.BadRequestException;
@@ -33,6 +34,14 @@ public class TrainerClientService {
         
         User client = userRepository.findById(clientId)
                 .orElseThrow(() -> new ResourceNotFoundException("Client not found"));
+
+        if (trainer.getRole().getName() != RoleEnum.TRAINER) {
+            throw new BadRequestException("Selected trainer user does not have TRAINER role");
+        }
+
+        if (client.getRole().getName() != RoleEnum.MEMBER) {
+            throw new BadRequestException("Selected client user does not have MEMBER role");
+        }
         
         // Check if already assigned
         mappingRepository.findActiveMapping(trainerId, clientId).ifPresent(m -> {
@@ -89,6 +98,15 @@ public class TrainerClientService {
         mapping.setIsActive(false);
         mappingRepository.save(mapping);
         log.info("Client {} unassigned from trainer {}", clientId, trainerId);
+    }
+
+    /**
+     * Verify active trainer-client relationship before trainer reads client data
+     */
+    @Transactional(readOnly = true)
+    public void ensureClientAssignedToTrainer(Long trainerId, Long clientId) {
+        mappingRepository.findActiveMapping(trainerId, clientId)
+                .orElseThrow(() -> new BadRequestException("Client is not assigned to this trainer"));
     }
     
     /**
