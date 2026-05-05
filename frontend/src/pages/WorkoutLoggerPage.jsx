@@ -3,7 +3,7 @@ import { Plus, Save, Trash2 } from 'lucide-react'
 import AppLayout from '../components/AppLayout'
 import SectionHeader from '../components/SectionHeader'
 import { useToast } from '../context/ToastContext'
-import { addWorkout } from '../services/workoutService'
+import { addWorkoutSession } from '../services/workoutService'
 
 const emptyExercise = { exercise: '', reps: 10, sets: 3, weight: 20 }
 
@@ -26,7 +26,7 @@ export default function WorkoutLoggerPage() {
     setSaving(true)
 
     try {
-      await addWorkout({ date: new Date().toISOString(), exercises: items })
+      await addWorkoutSession({ date: new Date().toISOString(), exercises: items })
       notify({ title: 'Workout saved', message: `${items.length} exercise entries were logged.` })
       setItems([{ ...emptyExercise }])
     } catch {

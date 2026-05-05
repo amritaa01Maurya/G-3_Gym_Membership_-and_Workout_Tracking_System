@@ -3,7 +3,7 @@ import AppLayout from '../components/AppLayout'
 import SectionHeader from '../components/SectionHeader'
 import StatCard from '../components/StatCard'
 import { useToast } from '../context/ToastContext'
-import { buyPlan } from '../services/membershipService'
+import { purchasePlan } from '../services/membershipService'
 import { plans } from '../utils/mockData'
 
 export default function MemberDashboard() {
@@ -11,7 +11,7 @@ export default function MemberDashboard() {
 
   const handleBuyPlan = async (plan) => {
     try {
-      await buyPlan(plan.id)
+      await purchasePlan(plan.id)
     } finally {
       notify({ title: `${plan.name} plan selected`, message: 'Membership checkout is ready for backend payment wiring.' })
     }
