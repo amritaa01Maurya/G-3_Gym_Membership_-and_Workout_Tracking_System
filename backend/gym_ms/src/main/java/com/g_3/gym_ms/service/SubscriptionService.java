@@ -10,6 +10,7 @@ import com.g_3.gym_ms.entity.SubscriptionStatus;
 import com.g_3.gym_ms.entity.User;
 import com.g_3.gym_ms.exception.BadRequestException;
 import com.g_3.gym_ms.exception.ResourceNotFoundException;
+import com.g_3.gym_ms.repository.SubscriptionRepository;
 import com.g_3.gym_ms.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -178,6 +179,14 @@ public class SubscriptionService {
         return subscriptions.stream()
                 .map(this::convertToDTO)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public SubscriptionDTO getSubscriptionById(Long subscriptionId) {
+        Subscription subscription = subscriptionRepository.findById(subscriptionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Subscription not found with id: " + subscriptionId));
+
+        return convertToDTO(subscription);
     }
     
     @Transactional

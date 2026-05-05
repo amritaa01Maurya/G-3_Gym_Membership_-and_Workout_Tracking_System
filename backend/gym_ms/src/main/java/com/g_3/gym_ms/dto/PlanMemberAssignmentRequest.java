@@ -10,12 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class PlanAssignmentRequest {
+public class PlanMemberAssignmentRequest {
     @NotNull(message = "User ID is required")
     private Long userId;
-
-    @NotNull(message = "Plan ID is required")
-    private Long planId;
-    
-    private String planType; // WORKOUT or DIET
 }

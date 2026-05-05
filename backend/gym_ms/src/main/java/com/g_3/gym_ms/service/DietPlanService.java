@@ -12,6 +12,7 @@ import com.g_3.gym_ms.exception.BadRequestException;
 import com.g_3.gym_ms.exception.ResourceNotFoundException;
 import com.g_3.gym_ms.repository.DietItemRepository;
 import com.g_3.gym_ms.repository.DietPlanRepository;
+import com.g_3.gym_ms.repository.TrainerClientMappingRepository;
 import com.g_3.gym_ms.repository.UserRepository;
 import com.g_3.gym_ms.repository.UserPlanAssignmentRepository;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,7 @@ public class DietPlanService {
     private final DietItemRepository dietItemRepository;
     private final UserRepository userRepository;
     private final UserPlanAssignmentRepository planAssignmentRepository;
+    private final TrainerClientMappingRepository trainerClientMappingRepository;
     
     /**
      * Create a new diet plan
@@ -48,6 +50,10 @@ public class DietPlanService {
                 .build();
         
         DietPlan saved = dietPlanRepository.save(plan);
+        if (request.getItems() != null && !request.getItems().isEmpty()) {
+            request.getItems().forEach(itemRequest -> saveDietItem(saved, itemRequest));
+        }
+
         log.info("Diet plan created by trainer {}", trainerId);
         
         return convertToDTO(saved);
@@ -64,14 +70,7 @@ public class DietPlanService {
             throw new BadRequestException("Unauthorized access to this plan");
         }
         
-        DietItem item = DietItem.builder()
-                .dietPlan(plan)
-                .mealType(request.getMealType())
-                .foodItem(request.getFoodItem())
-                .calories(request.getCalories())
-                .build();
-        
-        DietItem saved = dietItemRepository.save(item);
+        DietItem saved = saveDietItem(plan, request);
         log.info("Food item added to plan {}", planId);
         
         return convertItemToDTO(saved);
@@ -114,20 +113,34 @@ public class DietPlanService {
         
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        trainerClientMappingRepository.findActiveMapping(trainerId, userId)
+                .orElseThrow(() -> new BadRequestException("You can only assign plans to your active clients"));
         
         // Remove old assignment
         planAssignmentRepository.findActiveByUserAndType(userId, "DIET").ifPresent(a -> {
+            if (a.getPlanId().equals(planId)) {
+                return;
+            }
             a.setIsActive(false);
             planAssignmentRepository.save(a);
         });
-        
-        // Create new assignment
-        UserPlanAssignment assignment = UserPlanAssignment.builder()
-                .user(user)
-                .planType("DIET")
-                .planId(planId)
-                .isActive(true)
-                .build();
+
+        planAssignmentRepository.findActiveByUserAndType(userId, "DIET")
+                .filter(a -> a.getPlanId().equals(planId))
+                .ifPresent(a -> {
+                    throw new BadRequestException("Diet plan is already assigned to this user");
+                });
+
+        UserPlanAssignment assignment = planAssignmentRepository
+                .findByUserIdAndPlanTypeAndPlanId(userId, "DIET", planId)
+                .orElseGet(() -> UserPlanAssignment.builder()
+                        .user(user)
+                        .planType("DIET")
+                        .planId(planId)
+                        .build());
+
+        assignment.setIsActive(true);
         
         planAssignmentRepository.save(assignment);
         log.info("Diet plan {} assigned to user {}", planId, userId);
@@ -193,5 +206,16 @@ public class DietPlanService {
                 .foodItem(item.getFoodItem())
                 .calories(item.getCalories())
                 .build();
+    }
+
+    private DietItem saveDietItem(DietPlan plan, DietItemRequest request) {
+        DietItem item = DietItem.builder()
+                .dietPlan(plan)
+                .mealType(request.getMealType())
+                .foodItem(request.getFoodItem())
+                .calories(request.getCalories())
+                .build();
+
+        return dietItemRepository.save(item);
     }
 }

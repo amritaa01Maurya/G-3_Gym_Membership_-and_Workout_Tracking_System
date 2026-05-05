@@ -23,6 +23,7 @@ public class WorkoutPlanService {
     private final WorkoutPlanItemRepository planItemRepository;
     private final UserRepository userRepository;
     private final UserPlanAssignmentRepository planAssignmentRepository;
+    private final TrainerClientMappingRepository trainerClientMappingRepository;
     
     /**
      * Create a new workout plan
@@ -39,6 +40,10 @@ public class WorkoutPlanService {
                 .build();
         
         WorkoutPlan saved = workoutPlanRepository.save(plan);
+        if (request.getItems() != null && !request.getItems().isEmpty()) {
+            request.getItems().forEach(itemRequest -> savePlanItem(saved, itemRequest));
+        }
+
         log.info("Workout plan created by trainer {}", trainerId);
         
         return convertToDTO(saved);
@@ -55,15 +60,7 @@ public class WorkoutPlanService {
             throw new BadRequestException("Unauthorized access to this plan");
         }
         
-        WorkoutPlanItem item = WorkoutPlanItem.builder()
-                .workoutPlan(plan)
-                .exerciseName(request.getExerciseName())
-                .sets(request.getSets())
-                .reps(request.getReps())
-                .day(request.getDay())
-                .build();
-        
-        WorkoutPlanItem saved = planItemRepository.save(item);
+        WorkoutPlanItem saved = savePlanItem(plan, request);
         log.info("Exercise added to plan {}", planId);
         
         return convertItemToDTO(saved);
@@ -106,20 +103,34 @@ public class WorkoutPlanService {
         
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        trainerClientMappingRepository.findActiveMapping(trainerId, userId)
+                .orElseThrow(() -> new BadRequestException("You can only assign plans to your active clients"));
         
         // Remove old assignment
         planAssignmentRepository.findActiveByUserAndType(userId, "WORKOUT").ifPresent(a -> {
+            if (a.getPlanId().equals(planId)) {
+                return;
+            }
             a.setIsActive(false);
             planAssignmentRepository.save(a);
         });
-        
-        // Create new assignment
-        UserPlanAssignment assignment = UserPlanAssignment.builder()
-                .user(user)
-                .planType("WORKOUT")
-                .planId(planId)
-                .isActive(true)
-                .build();
+
+        planAssignmentRepository.findActiveByUserAndType(userId, "WORKOUT")
+                .filter(a -> a.getPlanId().equals(planId))
+                .ifPresent(a -> {
+                    throw new BadRequestException("Workout plan is already assigned to this user");
+                });
+
+        UserPlanAssignment assignment = planAssignmentRepository
+                .findByUserIdAndPlanTypeAndPlanId(userId, "WORKOUT", planId)
+                .orElseGet(() -> UserPlanAssignment.builder()
+                        .user(user)
+                        .planType("WORKOUT")
+                        .planId(planId)
+                        .build());
+
+        assignment.setIsActive(true);
         
         planAssignmentRepository.save(assignment);
         log.info("Workout plan {} assigned to user {}", planId, userId);
@@ -186,5 +197,17 @@ public class WorkoutPlanService {
                 .reps(item.getReps())
                 .day(item.getDay())
                 .build();
+    }
+
+    private WorkoutPlanItem savePlanItem(WorkoutPlan plan, WorkoutPlanItemRequest request) {
+        WorkoutPlanItem item = WorkoutPlanItem.builder()
+                .workoutPlan(plan)
+                .exerciseName(request.getExerciseName())
+                .sets(request.getSets())
+                .reps(request.getReps())
+                .day(request.getDay())
+                .build();
+
+        return planItemRepository.save(item);
     }
 }

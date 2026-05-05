@@ -25,4 +25,6 @@ public class WorkoutSessionRequest {
     private Integer durationMinutes;
     
     private String notes;
+
+    private List<ExerciseLogRequest> exercises;
 }
