@@ -5,16 +5,11 @@ import { clearSession, getStoredUser, getToken, setSession } from '../utils/stor
 
 const AuthContext = createContext(null)
 
-const demoUsers = {
-  member: { name: 'Nisha Patel', email: 'member@gym.com', role: 'member' },
-  admin: { name: 'Admin Rao', email: 'admin@gym.com', role: 'admin' },
-  trainer: { name: 'Aisha Khan', email: 'trainer@gym.com', role: 'trainer' },
-}
-
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => getStoredUser())
   const [token, setToken] = useState(() => getToken())
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     const handleLogout = () => {
@@ -28,13 +23,22 @@ export function AuthProvider({ children }) {
 
   const login = async ({ email, password, role }) => {
     setLoading(true)
+    setError(null)
 
     try {
       const response = await loginRequest({ email, password, role })
+      
+      // Backend returns LoginResponse directly (not wrapped in ApiResponse)
+      // Format: { token, type, userId, email, name, role }
       const nextToken = response.data?.token
-      const nextUser = response.data?.user
+      const nextUser = {
+        id: response.data?.userId,
+        email: response.data?.email,
+        name: response.data?.name,
+        role: response.data?.role?.toLowerCase() || 'member'
+      }
 
-      if (!nextToken || !nextUser) {
+      if (!nextToken || !nextUser.email) {
         throw new Error('Invalid login response')
       }
 
@@ -42,14 +46,10 @@ export function AuthProvider({ children }) {
       setToken(nextToken)
       setUser(nextUser)
       return nextUser
-    } catch {
-      const fallbackUser = demoUsers[role] || demoUsers.member
-      const fallbackToken = `demo-jwt-${fallbackUser.role}`
-
-      setSession({ token: fallbackToken, user: fallbackUser })
-      setToken(fallbackToken)
-      setUser(fallbackUser)
-      return fallbackUser
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || err.message || 'Login failed'
+      setError(errorMessage)
+      throw err
     } finally {
       setLoading(false)
     }
@@ -57,10 +57,16 @@ export function AuthProvider({ children }) {
 
   const register = async (payload) => {
     setLoading(true)
+    setError(null)
 
     try {
+      // Backend returns UserDTO directly
       const response = await registerRequest(payload)
       return response.data
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || err.message || 'Registration failed'
+      setError(errorMessage)
+      throw err
     } finally {
       setLoading(false)
     }
@@ -70,19 +76,21 @@ export function AuthProvider({ children }) {
     clearSession()
     setUser(null)
     setToken(null)
+    setError(null)
   }
 
   const value = useMemo(
     () => ({
       isAuthenticated: Boolean(token && user),
       loading,
+      error,
       login,
       logout,
       register,
       token,
       user,
     }),
-    [loading, token, user],
+    [loading, error, token, user],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
