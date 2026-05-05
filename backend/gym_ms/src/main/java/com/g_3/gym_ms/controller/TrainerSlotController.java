@@ -20,10 +20,7 @@ public class TrainerSlotController {
     
     private final TrainerSlotService trainerSlotService;
     
-    /**
-     * Create a new trainer slot
-     * POST /api/trainer-slots
-     */
+
     @PostMapping
     public ResponseEntity<TrainerSlotDTO> createSlot(
             @RequestParam Long trainerId,
@@ -35,22 +32,14 @@ public class TrainerSlotController {
         TrainerSlotDTO slotDTO = trainerSlotService.createSlot(trainerId, slotDateTime, durationMinutes, price);
         return ResponseEntity.status(HttpStatus.CREATED).body(slotDTO);
     }
-    
-    /**
-     * Get available slots for a trainer
-     * GET /api/trainer-slots/trainer/{trainerId}/available
-     */
+
     @GetMapping("/trainer/{trainerId}/available")
     public ResponseEntity<List<TrainerSlotDTO>> getAvailableSlots(@PathVariable Long trainerId) {
         log.info("Fetching available slots for trainer: {}", trainerId);
         List<TrainerSlotDTO> slots = trainerSlotService.getAvailableSlotsByTrainer(trainerId);
         return ResponseEntity.ok(slots);
     }
-    
-    /**
-     * Get all available slots across all trainers
-     * GET /api/trainer-slots/available
-     */
+
     @GetMapping("/available")
     public ResponseEntity<List<TrainerSlotDTO>> getAllAvailableSlots() {
         log.info("Fetching all available trainer slots");
@@ -58,10 +47,6 @@ public class TrainerSlotController {
         return ResponseEntity.ok(slots);
     }
     
-    /**
-     * Get trainer slots within a date range
-     * GET /api/trainer-slots/trainer/{trainerId}/range?start=2024-01-01T10:00:00&end=2024-01-31T18:00:00
-     */
     @GetMapping("/trainer/{trainerId}/range")
     public ResponseEntity<List<TrainerSlotDTO>> getSlotsByRange(
             @PathVariable Long trainerId,
@@ -73,10 +58,7 @@ public class TrainerSlotController {
         return ResponseEntity.ok(slots);
     }
     
-    /**
-     * Get a specific slot
-     * GET /api/trainer-slots/{slotId}
-     */
+ 
     @GetMapping("/{slotId}")
     public ResponseEntity<TrainerSlotDTO> getSlot(@PathVariable Long slotId) {
         log.info("Fetching slot: {}", slotId);
@@ -84,10 +66,7 @@ public class TrainerSlotController {
         return ResponseEntity.ok(slotDTO);
     }
     
-    /**
-     * Update slot availability
-     * PUT /api/trainer-slots/{slotId}/availability
-     */
+  
     @PutMapping("/{slotId}/availability")
     public ResponseEntity<TrainerSlotDTO> updateAvailability(
             @PathVariable Long slotId,
@@ -98,10 +77,7 @@ public class TrainerSlotController {
         return ResponseEntity.ok(slotDTO);
     }
     
-    /**
-     * Delete a trainer slot
-     * DELETE /api/trainer-slots/{slotId}
-     */
+  
     @DeleteMapping("/{slotId}")
     public ResponseEntity<Void> deleteSlot(@PathVariable Long slotId) {
         log.info("Deleting slot: {}", slotId);

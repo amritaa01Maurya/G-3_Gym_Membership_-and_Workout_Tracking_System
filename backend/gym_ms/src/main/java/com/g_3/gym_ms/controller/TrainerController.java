@@ -18,10 +18,7 @@ public class TrainerController {
     
     private final TrainerService trainerService;
     
-    /**
-     * Register a new trainer
-     * POST /api/trainers
-     */
+
     @PostMapping
     public ResponseEntity<Trainer> registerTrainer(
             @RequestParam Long userId,
@@ -33,11 +30,7 @@ public class TrainerController {
         Trainer trainer = trainerService.registerTrainer(userId, specialty, hourlyRate, bio);
         return ResponseEntity.status(HttpStatus.CREATED).body(trainer);
     }
-    
-    /**
-     * Get all trainers
-     * GET /api/trainers
-     */
+
     @GetMapping
     public ResponseEntity<List<Trainer>> getAllTrainers() {
         log.info("Fetching all trainers");
@@ -45,10 +38,7 @@ public class TrainerController {
         return ResponseEntity.ok(trainers);
     }
     
-    /**
-     * Get a specific trainer
-     * GET /api/trainers/{trainerId}
-     */
+
     @GetMapping("/{trainerId}")
     public ResponseEntity<Trainer> getTrainer(@PathVariable Long trainerId) {
         log.info("Fetching trainer: {}", trainerId);
@@ -56,10 +46,7 @@ public class TrainerController {
         return ResponseEntity.ok(trainer);
     }
     
-    /**
-     * Get trainer by user ID
-     * GET /api/trainers/user/{userId}
-     */
+ 
     @GetMapping("/user/{userId}")
     public ResponseEntity<Trainer> getTrainerByUser(@PathVariable Long userId) {
         log.info("Fetching trainer for user: {}", userId);
@@ -67,10 +54,7 @@ public class TrainerController {
         return ResponseEntity.ok(trainer);
     }
     
-    /**
-     * Update trainer information
-     * PUT /api/trainers/{trainerId}
-     */
+    
     @PutMapping("/{trainerId}")
     public ResponseEntity<Trainer> updateTrainer(
             @PathVariable Long trainerId,
@@ -83,10 +67,6 @@ public class TrainerController {
         return ResponseEntity.ok(trainer);
     }
     
-    /**
-     * Update trainer availability
-     * PUT /api/trainers/{trainerId}/availability
-     */
     @PutMapping("/{trainerId}/availability")
     public ResponseEntity<Trainer> updateAvailability(
             @PathVariable Long trainerId,
